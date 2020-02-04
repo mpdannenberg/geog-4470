@@ -5,9 +5,6 @@
 #########################################################
 
 
-# Set working directory
-setwd('D:\\Code\\Eco_Model')
-
 # Load model functions
 source('eco_model.r')
 library(pracma)
