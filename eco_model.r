@@ -331,36 +331,63 @@ compute_sun_angles <- function(lat, lon, yr, mo, dt, hr, mi){
 }
 
 compute_toc_down_rad <- function(par, sun_zenith, jday){
-  tau_t <- (par/4.55)*(1.0/PAR2SWIR)/(SO*(1.0+0.033*cos(2.0*pi*(jday-10.0)/365.0)))
   
-  # Leuning (1995) approach
-  fd_l <- 1.0-2.0*(tau_t-0.3)
-  fd_l[tau_t > 0.7] <- 0.2
-  fd_l[tau_t < 0.3] <- 1.0
+  # Constants from Weiss & Norman 1985, Eq. 12
+  A <- 0.9
+  B <- 0.7
+  C <- 0.88
+  D <- 0.68
   
-  # using Liu and Jordan (1960) and Leuning (1995) approach 
-  tau_d <- 0.384-0.416*tau_t
-  tau_D <- tau_t-tau_d
+  # Cosine of the solar zenith angle
+  cos_theta <- cos(sun_zenith)
+  cos_theta[cos_theta<0] <- 0 
   
+  # Potential visible (V) and NIR (N) radiation at top of atmosphere
+  S_V <- 0.473*1367.0*(1.0+0.033*cos(2.0*pi*(jday-10)/365))
+  S_N <- 0.527*1367.0*(1.0+0.033*cos(2.0*pi*(jday-10)/365))
   
-    # new inovation: According to observations, at clear skies, 77% of the total
-    # radiation is direct (tau_D=0.77), and 23% of it is diffuse. Also according to 
-    # measurements, when tau_t=0.3 (i.e. tau_D=0.384-0.416*(0.3)=0.26), there is no direct light.  
-    # for clear skies, the very diffuse fraction of par is 1.4 time the total diffuse
-    # fraction. Assuming this fraction linearly decrease to 1.0 when tau_D=0.26. 
-    
+  # Potential direct visible on a horizontal surface
+  R_DV <- S_V*exp(-0.185/cos_theta)*cos_theta
   
-  fdv2fd <- 1.0+0.8511*(tau_t-0.3)
-  fdv2fd[tau_t <= 0.3] <- 1.0
+  # Potential diffuse visible on a horizontal surface
+  R_dV <- 0.4*(S_V-R_DV)*cos_theta
   
-  fd_nir <- (2.0-fdv2fd)*fd_l
-  fd_par <- 2.0*fd_l-fd_nir
+  # Total potential visible radiation on a horizontal surface
+  R_V <- R_DV + R_dV
   
-  rad <- data.frame(par_d = fd_par * par/4.55,
-                    par_D = par/4.55 - fd_par * par/4.55,
-                    nir_d = fd_nir * (par/4.55) * (0.57/0.43),
-                    nir_D = (par/4.55) * (0.57/0.43) - fd_nir * (par/4.55) * (0.57/0.43),
-                    cloud = max(1.0-tau_t/0.7, 0))
+  # Absorbed NIR by atmospheric water vapor
+  cos_theta_noZero <- cos_theta
+  cos_theta_noZero[cos_theta==0] <- 0.0000000000000001 # avoid division by zero
+  R_aN <- S_N * 10^(-1.195+0.4459*log10(1.0/cos_theta_noZero)-0.0345*(log10(1.0/cos_theta_noZero)^2.0))
+  
+  # Potential direct NIR on a horizontal surface
+  R_DN <- (S_N*exp(-0.06/cos_theta)-R_aN)*cos_theta
+  R_DN[R_DN<0] <- 0 # Can't have negative direct radiation
+  
+  # Potetial diffuse NIR on a horizontal surface
+  R_dN <- 0.6*(S_N-R_DN-R_aN)*cos_theta
+  
+  # Total potential NIR on a horizontal surface
+  R_N <- R_DN + R_dN
+  
+  # Ratio of actual total radiation to potential total radiation on the ground
+  RATIO <- (par/4.55)*(1.0/PAR2SWIR) / (R_V+R_N)
+  
+  # Actual fraction of direct visible radiation
+  RATIO[RATIO>A] <- A
+  f_DV <- (R_DV/(R_V*0.928)) * (1.0 - ((A-RATIO)/B) ^ (2.0/3.0))
+  f_DV[R_V==0] <- 0
+  
+  # Actual fraction of direct NIR radiation
+  RATIO[RATIO>C] <- C
+  f_DN <- (R_DN/R_N) * (1.0 - ((C-RATIO)/D) ^ (2.0/3.0))
+  f_DN[R_N==0] <- 0
+  
+  rad <- data.frame(par_D = f_DV * par/4.55,
+                    par_d = par/4.55 - f_DV * par/4.55,
+                    nir_D = f_DN * (par/4.55) * ((1-PAR2SWIR)/PAR2SWIR),
+                    nir_d = (par/4.55) * ((1-PAR2SWIR)/PAR2SWIR) - f_DN * (par/4.55) * ((1-PAR2SWIR)/PAR2SWIR))
+                    
   return(rad)
   
 }
