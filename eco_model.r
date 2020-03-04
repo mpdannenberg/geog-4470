@@ -331,6 +331,7 @@ compute_sun_angles <- function(lat, lon, yr, mo, dt, hr, mi){
 }
 
 compute_toc_down_rad <- function(par, sun_zenith, jday){
+  tau_t <- (par/4.55)*(1.0/PAR2SWIR)/(SO*(1.0+0.033*cos(2.0*pi*(jday-10.0)/365.0)))
   
   # Constants from Weiss & Norman 1985, Eq. 12
   A <- 0.9
@@ -386,7 +387,8 @@ compute_toc_down_rad <- function(par, sun_zenith, jday){
   rad <- data.frame(par_D = f_DV * par/4.55,
                     par_d = par/4.55 - f_DV * par/4.55,
                     nir_D = f_DN * (par/4.55) * ((1-PAR2SWIR)/PAR2SWIR),
-                    nir_d = (par/4.55) * ((1-PAR2SWIR)/PAR2SWIR) - f_DN * (par/4.55) * ((1-PAR2SWIR)/PAR2SWIR))
+                    nir_d = (par/4.55) * ((1-PAR2SWIR)/PAR2SWIR) - f_DN * (par/4.55) * ((1-PAR2SWIR)/PAR2SWIR),
+                    cloud = max(1.0-tau_t/0.7, 0))
                     
   return(rad)
   
