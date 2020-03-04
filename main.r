@@ -10,7 +10,7 @@ source('eco_model.r')
 library(pracma)
 
 # Load data
-dat <- read.table('TdrTsoilWindLaiPrecParTaVpdMay2001-Daytime.txt')
+dat <- read.table('./data/TdrTsoilWindLaiPrecParTaVpdMay2001-Daytime.txt')
 names(dat) <- c('Month', 'Day','Hour','Minute','Tdr','Tsoil','Wind','Lai','Prec','Par','Ta','Vpd')
 dat$Year <- 2001
 
@@ -60,9 +60,6 @@ canopy_net_rad <- compute_canopy_net_rad(canopy_shortwave,
                                          Kb, 
                                          Kd)
 
-# Estimate photosynthesis parameters
-psn_para <- compute_psn_parameters(dat$Ta, Kb, sunlit_lai, shaded_lai)
-
 # Estimate aerodynamic resistance and conductance
 ra <- canopy_aerodynamic_resistance(dat$Wind, hs, h2)
 ra[dat$Wind <= 0] <- 1.0 / g1_blayer
@@ -71,6 +68,9 @@ ga <- 1/ra
 # Compute soil resistance
 rs_u <- compute_soil_surface_resistance(dat$Tdr)
 ra_u <- ra
+
+# Estimate photosynthesis parameters
+psn_para <- compute_psn_parameters(dat$Ta, Kb, sunlit_lai, shaded_lai)
 fsoil_theta <- 1.0
 
 # Calcuate photosynthesis and stomatal conductance for sunlit leaves
