@@ -12,6 +12,7 @@ names(dat) <- vars
 # Add year and date to the data frame
 dat$Year <- 2001
 dat$Date <- ISOdate(dat$Year, dat$Month, dat$Day, dat$Hour, dat$Minute, tz='EST')
+dat$Vpd <- dat$Vpd * 1000
 
 # Define global variables and model parameters
 define_global_variables()
@@ -102,8 +103,41 @@ flx <- read.table('./data/GppLeHMay2001-Daytime.txt', sep=' ', header=T)
 
 
 # Question 1: make separate time series of wind and aerodynamic RESISTANCE, and a scatterplot of wind vs. ra. Interpret plots: when is resistance highest? Diurnal patterns? What does this mean for fluxes?
+plot(dat$Date, dat$Wind, 
+     type='l', 
+     xlab='Date',
+     ylab='Wind speed (m/s)',
+     frame=F)
+
+plot(dat$Date, ra, 
+     type='l', 
+     xlab='Date',
+     ylab='Aerodynamic resistance (s/m)',
+     frame=F)
+
+plot(dat$Wind, ra, 
+     xlab='Wind speed (m/s)', 
+     ylab='Aerodynamic resistance (s/m)',
+     frame=F)
 
 # Question 2: make a time series of soil surface resistance (rs_u) and a scatterplot of rs_u vs. soil moisture (Tdr). How does rs_u vary with soil moisture?
+plot(dat$Date, dat$Tdr, 
+     type='l', 
+     xlab='Date',
+     ylab='Soil moisture (%)',
+     frame=F)
+
+plot(dat$Date, rs_u, 
+     type='l', 
+     xlab='Date',
+     ylab='Soil resistance (s/m)',
+     frame=F)
+
+plot(dat$Tdr, rs_u, 
+     xlab='Soil moisture (%)', 
+     ylab='Soil resistance (s/m)',
+     frame=F)
+
 
 # Question 3: calculate total LE of the ecosystem (LE_total). Plot LE_total and its three components as a time series
 
